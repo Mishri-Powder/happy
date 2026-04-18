@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌸 Petal Stack · Simple Cards</title>
+  <!-- Pico.css for minimal, clean styling -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.classless.min.css">
+  <!-- Optional: Lucide icons for subtle visuals -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body {
+      padding: 2rem 1.5rem;
+      background: #faf8f5;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    h1 {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 350;
+      color: #5e4b3e;
+      border-bottom: 1px solid #e0d6cc;
+      padding-bottom: 0.75rem;
+      margin-bottom: 2rem;
+    }
+    .controls {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+    }
+    .controls input {
+      flex: 1;
+      min-width: 200px;
+      max-width: 320px;
+      padding: 0.5rem 1rem;
+      border-radius: 40px;
+      border: 1px solid #d4c5b8;
+      background: white;
+    }
+    .controls button {
+      padding: 0.5rem 1.5rem;
+      border-radius: 40px;
+      background: #e8ddd2;
+      border: 1px solid #c6b4a4;
+      color: #3e2f24;
+      font-weight: 500;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+    .controls button:hover {
+      background: #dacbbc;
+    }
+    .status {
+      color: #7f6e5d;
+      font-style: italic;
+    }
+    /* Card grid */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+    .repo-card {
+      background: white;
+      border-radius: 20px;
+      padding: 1.5rem 1.2rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.05);
+      border: 1px solid #ede3d9;
+      transition: box-shadow 0.1s;
+      display: flex;
+      flex-direction: column;
+    }
+    .repo-card:hover {
+      box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+      border-color: #d4bfae;
+    }
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .card-header i {
+      color: #b28b6b;
+      width: 1.5rem;
+      height: 1.5rem;
+      flex-shrink: 0;
+    }
+    .repo-name {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #3e2f24;
+      text-decoration: none;
+      word-break: break-word;
+    }
+    .repo-name:hover {
+      color: #7f5a44;
+      text-decoration: underline;
+    }
+    .repo-desc {
+      font-size: 0.9rem;
+      color: #5f5348;
+      margin: 0.5rem 0 1rem;
+      line-height: 1.5;
+      flex: 1;
+    }
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 0.8rem;
+      margin-top: auto;
+      padding-top: 1rem;
+      border-top: 1px solid #e7dbd0;
+      font-size: 0.8rem;
+    }
+    .meta-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #f3ede7;
+      padding: 0.2rem 0.7rem;
+      border-radius: 30px;
+      color: #4e3f34;
+    }
+    .meta-badge i {
+      width: 14px;
+      height: 14px;
+    }
+    .empty-message {
+      text-align: center;
+      padding: 3rem;
+      color: #8e7c6b;
+    }
+    .footer-note {
+      margin-top: 2.5rem;
+      text-align: center;
+      color: #a49283;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+<div class="container" x-data="app()" x-init="init()">
+  <h1>
+    <i data-lucide="flower"></i>
+    <span>Petal Stack · simple cards</span>
+    <span x-show="username" style="margin-left: auto; font-size:0.9rem; background:#ede0d4; padding:0.2rem 1rem; border-radius:30px;" x-text="'@'+username"></span>
+  </h1>
+  
+  <div class="controls">
+    <input type="text" x-model="inputUser" placeholder="GitHub username (e.g., Mishri-Powder)" @keyup.enter="fetchRepos(inputUser)">
+    <button @click="fetchRepos(inputUser)" :disabled="loading">
+      <span x-show="!loading">Fetch repos</span>
+      <span x-show="loading">Loading...</span>
+    </button>
+    <button @click="resetToDefault">Reset</button>
+    <span class="status" x-text="statusMessage"></span>
+  </div>
+  
+  <!-- Card grid -->
+  <div x-show="repos.length > 0" class="card-grid">
+    <template x-for="repo in repos" :key="repo.id">
+      <div class="repo-card">
+        <div class="card-header">
+          <i data-lucide="folder-heart"></i>
+          <a :href="pagesUrl(repo.name)" target="_blank" class="repo-name" x-text="repo.name"></a>
+        </div>
+        <div class="repo-desc" x-text="repo.description || 'No description provided.'"></div>
+        <div class="meta-row">
+          <span class="meta-badge" x-show="repo.language">
+            <i data-lucide="code-2"></i>
+            <span x-text="repo.language"></span>
+          </span>
+          <span class="meta-badge">
+            <i data-lucide="star"></i>
+            <span x-text="repo.stargazers_count"></span>
+          </span>
+          <span class="meta-badge">
+            <i data-lucide="calendar"></i>
+            <span x-text="formatDate(repo.updated_at)"></span>
+          </span>
+          <a :href="repo.html_url" target="_blank" class="meta-badge" style="text-decoration:none;">
+            <i data-lucide="external-link"></i>
+          </a>
+        </div>
+      </div>
+    </template>
+  </div>
+  
+  <div x-show="repos.length === 0 && !loading && !error" class="empty-message">
+    <i data-lucide="flower-2" style="width:2rem; height:2rem; opacity:0.5;"></i>
+    <p>No repositories yet. Enter a GitHub username above.</p>
+  </div>
+  
+  <div x-show="error" class="empty-message" style="color:#b15e5e;">
+    <i data-lucide="alert-circle"></i>
+    <p x-text="statusMessage"></p>
+  </div>
+  
+  <div class="footer-note">
+    <i data-lucide="github" style="width:1rem; height:1rem;"></i>
+    simple card list · no effects
+  </div>
+</div>
+
+<!-- Alpine.js -->
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<script>
+  function app() {
+    return {
+      defaultUser: 'Mishri-Powder',
+      inputUser: 'Mishri-Powder',
+      username: '',
+      repos: [],
+      loading: false,
+      error: false,
+      statusMessage: '',
+      
+      init() {
+        this.fetchRepos(this.defaultUser);
+        this.$watch('repos', () => {
+          setTimeout(() => lucide.createIcons(), 20);
+        });
+      },
+      
+      async fetchRepos(user) {
+        user = user.trim();
+        if (!user) {
+          this.statusMessage = 'Please enter a username';
+          this.error = true;
+          return;
+        }
+        this.username = user;
+        this.loading = true;
+        this.error = false;
+        this.statusMessage = 'Fetching repositories…';
+        this.repos = [];
+        
+        try {
+          let page = 1;
+          let allRepos = [];
+          while (true) {
+            const url = `https://api.github.com/users/${encodeURIComponent(user)}/repos?per_page=100&page=${page}&sort=updated`;
+            const resp = await fetch(url);
+            if (!resp.ok) {
+              if (resp.status === 404) throw new Error(`User "${user}" not found`);
+              if (resp.status === 403 && resp.headers.get('x-ratelimit-remaining') === '0') {
+                throw new Error('GitHub rate limit reached. Please wait a moment.');
+              }
+              throw new Error(`API error: ${resp.status}`);
+            }
+            const data = await resp.json();
+            if (data.length === 0) break;
+            allRepos = allRepos.concat(data);
+            if (data.length < 100) break;
+            page++;
+          }
+          allRepos.sort((a, b) => a.name.localeCompare(b.name));
+          this.repos = allRepos;
+          this.statusMessage = `🌼 ${allRepos.length} repositories loaded`;
+          this.error = false;
+        } catch (err) {
+          console.error(err);
+          this.statusMessage = err.message;
+          this.error = true;
+          this.repos = [];
+        } finally {
+          this.loading = false;
+          lucide.createIcons();
+        }
+      },
+      
+      resetToDefault() {
+        this.inputUser = this.defaultUser;
+        this.fetchRepos(this.defaultUser);
+      },
+      
+      pagesUrl(repoName) {
+        return `https://${this.username.toLowerCase()}.github.io/${repoName}/`;
+      },
+      
+      formatDate(isoString) {
+        return new Date(isoString).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      }
+    };
+  }
+  
+  // Initialize icons after Alpine loads
+  document.addEventListener('alpine:init', () => {
+    lucide.createIcons();
+  });
+  window.addEventListener('load', () => lucide.createIcons());
+</script>
+</body>
+</html>
